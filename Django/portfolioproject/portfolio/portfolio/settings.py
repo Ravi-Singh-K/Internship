@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,7 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'portapp',
     'django_extensions',
+    'xhtml2pdf',
 ]
+
+WKHTMLTOPDF_CMD = '/mnt/A44ACCFC4ACCCC6C/Internship/Django/portfolioproject/portenv/lib64/python3.12/site-packages/wkhtmltopdf'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -124,7 +128,7 @@ STATICFILES_DIRS = (
 )
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
-MEDIA_ROOT = 'media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

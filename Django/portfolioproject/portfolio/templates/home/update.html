@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Profile</title>
+    <style>
+        *{
+            margin: 8px;
+            padding: 8px;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 20px;
+        }
+        body{
+            background-color: antiquewhite;
+        }
+
+    </style>
+    
+</head>
+<body>
+    <h1>Update Profile : {{user.username}}</h1>
+    <form method="POST" action="{% url 'edit' %}" enctype="multipart/form-data" id="update_form">
+        {% csrf_token %}
+        <input type="text" name="u_id" value="{{user.id}}" hidden>
+        {% if user.profile_pic %}
+            Profile Picture : <input type="file" name="profile"> 
+            <img src="{{user.profile_pic.url}}" height="150px" width="150px"><br/>
+        {% else %}
+            Profile Picture : <input type="file" name="profile"> 
+            <img src="{% static 'img/no_image.png' %}" height="150px" width="150px"><br/>
+        {% endif %}
+
+        First Name : <input type="text" name="first_name" value="{{user.first_name}}"><br/>
+        Last Name : <input type="text" name="last_name" value="{{user.last_name}}"><br/>
+        Username : <input type="text" name="username" value="{{user.username}}" readonly><br/>
+        Phone Number : <input type="text" name="contact" value="{{user.contact}}"><br/>
+        Address : <input type="text" name="address" value="{{user.address}}"><br/>
+        Date Of Birth : <input type="date" name="dob" value="{{user.dob|date:'Y-m-d'}}"><br/>
+        About Yourself : 
+        <textarea rows="5" cols="30" name="summary" form="update_form">{{user.summary}}</textarea><br/>
+        Link : <input type="url" name="link" value="{{user.link}}"><br/>
+        Email : <input type="email" name="email" value="{{user.email}}" readonly><br/>
+        Password : <input type="password" name="password" placeholder="Type if you want to change it."><br/>
+
+        <div class="education">
+            School Name : <input type="text" name="school_name" {% for i in user.education.all %}value="{{i.school_name}}"{% endfor %}><br/>
+            School CGPA : <input type="text" name="school_grade" {% for i in user.education.all %}value="{{i.school_grade}}"{% endfor %}><br/>
+            School Passed Year : <input type="date" name="school_passed_year" {% for i in user.education.all %}value="{{i.school_passed_year|date:'Y-m-d'}}"{% endfor %}><br/>
+            Collage Name : <input type="text" name="collage_name" {% for i in user.education.all %}value="{{i.collage_name}}"{% endfor %}><br/>
+            Collage CGPA : <input type="text" name="collage_grade" {% for i in user.education.all %}value="{{i.collage_grade}}"{% endfor %}><br/>
+            Collage Passed Year : <input type="date" name="collage_passed_year" {% for i in user.education.all %}value="{{i.collage_passed_year|date:'Y-m-d'}}"{% endfor %}><br/>
+        </div>
+        
+        
+        <div class="skill">
+            Skills : <input type="text" name="skill_name" {% for i in user.skills.all %}value="{{i.skill_name}}"{% endfor %}><br/>
+        </div>
+        
+        <div class="experience">
+            Company Name : <input type="text" name="company_name" {% for i in user.experience.all %}value="{{i.company_name}}"{% endfor %}><br/>
+            Position : <input type="text" name="position" {% for i in user.experience.all %}value="{{i.position}}"{% endfor %}><br/>
+            Duration : <input type="text" name="duration" {% for i in user.experience.all %}value="{{i.duration}}"{% endfor %}><br/>
+        </div>
+        
+        <input type="submit" value="Send">
+        <a href="{% url 'dashboard' %}">Go Back</a> 
+    </form>
+</body>
+</html>

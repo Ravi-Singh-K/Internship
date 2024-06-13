@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body{
+            margin: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .samples{
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            line-height: 30px;
+            font-size: 20px;
+        }
+        .samp .down{
+            color: blue;
+            padding: 10px;
+            line-height: 30px;
+            font-size: 20px;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Dashboard : {{user.username}}&nbsp;{{user.id}}</h1>
+    <a href="{% url 'logout' %}">Log Out</a>
+    <div><h2>Update Profile</h2>
+        <a href="{% url 'update' %}">Click to update Profile</a>
+    </div>
+    <div class="samples">
+        <h2>Resume Samples</h2>
+        <div class="samp">
+            <a href="{% url 'sample1' %}">Sample 1</a>
+            <a href="{% url 'download' %}" class="down">Download</a>
+        </div>
+        <div class="samp">
+            <a href="{% url 'sample2' %}">Sample 2</a>
+            <a href="{% url 'download' %}" class="down">Download</a>
+        </div>
+        <div class="samp">
+            <a href="{% url 'sample3' %}">Sample 3</a>
+            <a href="{% url 'download' %}" class="down">Download</a>
+        </div>
+    </div>
+</body>
+</html>

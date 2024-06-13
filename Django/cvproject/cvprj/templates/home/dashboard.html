@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %} Dashboard {% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+        <div class="title-name">
+            <h2 style="text-align: center;">Welcome {{user.first_name}} {{user.last_name}}</h2>
+            <p>Choose any sample CV</p>
+        </div>
+        <div class="sample-cv">
+            <div class="sample">
+                <img src="{% static 'img/sample1.png' %}">
+                <a href="{% url 'sample1' %}" target="_blank"><button>Preview Sample 1</button></a>
+                <a href="{% url 'download' %}?template=sample1" target="_blank"><button>Download</button></a>
+            </div>
+            <div class="sample">
+                <img src="{% static 'img/sample2.png' %}">
+                <a href="{% url 'sample2' %}"target="_blank"><button>Preview Sample 2</button></a>
+                <a href="{% url 'download' %}?template=sample2" target="_blank"><button>Download</button></a>
+            </div>
+            <div class="sample">
+                <img src="{% static 'img/sample3.png' %}">
+                <a href="{% url 'sample3' %}"target="_blank"><button>Preview Sample 3</button></a>
+                <a href="{% url 'download' %}?template=sample3" target="_blank"><button>Download</button></a>
+            </div>
+        </div>
+</body>
+</html>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% load static %}
+
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+    <link href="{% static 'https://unpkg.com/ionicons@4.5.10-0/dist/css/ionicons.min.css' %}" rel="stylesheet">
+
+<body>
+    <div class="nav-bar">
+        <div class="left">
+            <p id = "head-title">CV Builder</p>
+            <p>Personalize Your Professional Details</p>
+        </div>
+        <div class="right">
+            <ul>
+                <a href="{% url 'dashboard' %}"><li>Dashboard</li></a>
+                <a href="{% url 'update' %}"><li>Update Information</li></a>
+                <a href="{% url 'log-out' %}"><li>Log Out</li></a>
+            </ul>
+        </div>
+    </div>

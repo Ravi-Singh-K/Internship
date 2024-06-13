@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Update Your Information</title>
+        <link rel="stylesheet" href="{% static 'css/update.css' %}">
+    </head>
+    <body>
+        <div class="title"><p>Choose The Field</p></div>
+        <div class="table-content">
+            <table>
+                <tr>
+                    <td><a href="{% url 'personalinfo' %}">Personal Information</a></td>
+                    <td><a href="{% url 'update_education' %}">Education</a></td>
+                    <td><a href="{% url 'update_experience' %}">Company</a></td>
+                    <td><a href="{% url 'update_link' %}">Media Links</a></td>
+                </tr>
+                <tr>
+                    <td><a href="{% url 'update_achievement' %}">Achievements</a></td>
+                    <td><a href="{% url 'update_reference' %}">References</a></td>
+                    <td><a href="{% url 'update_skill' %}">Skills</a></td>
+                    <td><a href="{% url 'update_language' %}">Languages</a></td>
+                </tr>
+            </table>
+        </div>
+        
+    </body>
+    </html>
+
+{% endblock %}

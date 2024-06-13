@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identify Yourself</title>
+    <link rel="stylesheet" href="{% static 'css/userregistration.css' %}">
+</head>
+<body>
+    <form action="{% url 'log-in' %}" method="POST">
+        
+        <div class="page-title">
+            <h1>Identify Yourself</h1>
+        </div>
+        {% for message in messages %}
+        <ul>
+            <li>{{message}}</li>
+        </ul>
+        {% endfor %}
+        <div class="page-body">
+            <table>
+                {% csrf_token %}
+                {{ form.as_table }}
+                <tr>
+                    <td>
+                        <div class="button-30">
+                            <input type="submit" value="Enter The Matrix" class="submit-button">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="button-30" role="button">
+                            <a href="{% url 'home' %}"><input type="button" value="Noob User" class="submit-button"></a>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</body>
+</html>
