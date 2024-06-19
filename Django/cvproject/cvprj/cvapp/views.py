@@ -19,20 +19,7 @@ def home(request):
             form.save()
             messages.success(request, "User has successfully registered.")
             return redirect("log-in")
-        else:
-            username = request.POST['username']
-            new_username = CustomUser.objects.filter(username = username)
-            password1 = request.POST['password']
-            password2 = request.POST['password2']
-            form_email = request.POST['email']
-            new_email = CustomUser.objects.filter(email = form_email)
-            if password1 and password2 and password1 != password2:
-                messages.error(request, "Passwords do not match with each other.")
-            if new_email.count():
-                messages.error(request, "Email exists already")
-            if new_username.count():
-                messages.error(request, "Username exists already")
-            return redirect("home")
+        return redirect("home")
             
     else:
         form = UserRegistrationForm()
@@ -89,16 +76,24 @@ def do_update(request):
 
 @login_required(login_url="log-in")
 def personalinfo(request):
-    user = get_object_or_404(CustomUser, id = request.user.id)
-    if request.method == 'POST':
+    user = CustomUser.objects.get(id = request.user.id)
+
+    if request.method == 'GET':
+        form = UserInformationForm(instance = user)
+
+    elif request.method in ['POST', 'PUT', 'PATCH']:
         form = UserInformationForm(request.POST, request.FILES, instance=user)
-        if form.is_valid:
+
+        if form.is_valid():
             form.save()
-            messages.success(request, "Record Updated Successfully")
+            messages.success(request, "Record has been successfully Updated.")
             return redirect("personalinfo")
+        
         else:
-            messages.error(request, "Record Failed To Update")
-    form = UserInformationForm(instance=user)
+            messages.error(request, "Records Failed To Update")
+            return redirect("personalinfo")
+        
+    form = UserInformationForm(instance = user)
     context = {
         'form':form,
     }
@@ -109,9 +104,13 @@ def personalinfo(request):
 @login_required(login_url="log-in")
 def update_education(request):
     
-    user = get_object_or_404(CustomUser, id=request.user.id)
-    if request.method == 'POST':
+    user = CustomUser.objects.get(id = request.user.id)
+    if request.method == 'GET':
+        formset = EducationFormSet(instance=user)
+
+    elif request.method in ['POST', 'PUT', 'PATCH']:
         formset = EducationFormSet(request.POST, instance=user)
+
         if formset.is_valid():
             formset.save()
             messages.success(request, "Record Updated Successfully")
@@ -120,7 +119,6 @@ def update_education(request):
             messages.error(request, "Record Failed To Update")
     else:
         formset = EducationFormSet(instance=user)
-
     context = {
         'formset': formset,
     }
@@ -130,9 +128,11 @@ def update_education(request):
 # Update Work Experience of CustomUser - Company Model
 @login_required(login_url="log-in")
 def update_work_experience(request):
-    user = get_object_or_404(CustomUser, id=request.user.id)
+    user = CustomUser.objects.get(id = request.user.id)
+    if request.method == 'GET':
+        formset = WorkFormSet(instance=user)
 
-    if request.method == 'POST':
+    elif request.method in ['POST', 'PUT', 'PATCH']:
         formset = WorkFormSet(request.POST, instance=user)
         
         if formset.is_valid():
@@ -153,9 +153,12 @@ def update_work_experience(request):
 
 @login_required(login_url="log-in")
 def update_link(request):
-    user = get_object_or_404(CustomUser, id=request.user.id)
+    user = CustomUser.objects.get(id = request.user.id)
 
-    if request.method == 'POST':
+    if request.method == 'GET':
+        formset = LinkFormSet(instance=user)
+
+    elif request.method in ['POST', 'PUT', 'PATCH']:
         formset = LinkFormSet(request.POST, instance=user)
         
         if formset.is_valid():
@@ -177,9 +180,12 @@ def update_link(request):
 
 @login_required(login_url="log-in")
 def update_achievement(request):
-    user = get_object_or_404(CustomUser, id=request.user.id)
+    user = CustomUser.objects.get(id = request.user.id)
 
-    if request.method == 'POST':
+    if request.method == 'GET':
+        formset = AchievementFormset(instance=user)
+
+    elif request.method in ['POST', 'PUT', 'PATCH']:
         formset = AchievementFormset(request.POST, instance=user)
         
         if formset.is_valid():
@@ -200,9 +206,12 @@ def update_achievement(request):
 
 @login_required(login_url="log-in")
 def update_reference(request):
-    user = get_object_or_404(CustomUser, id = request.user.id)
+    user = CustomUser.objects.get(id = request.user.id)
 
-    if request.method == 'POST':
+    if request.method == 'GET':
+        formset = ReferenceFormSet(instance=user)
+
+    elif request.method in ['POST', 'PUT', 'PATCH']:
         formset = ReferenceFormSet(request.POST, instance=user)
 
         if formset.is_valid():
@@ -222,44 +231,90 @@ def update_reference(request):
 
 @login_required(login_url="log-in")
 def update_skill(request):
+    skills = Skill.objects.all()
 
     if request.method == 'POST':
         form = UserSkillForm(request.POST)
-
         if form.is_valid():
             form.save()
-            messages.success(request, "Record Updated Successfully")
-            return redirect("update_skill")
+            messages.success(request, "Skill added successfully")
+            return redirect('update_skill')
         else:
-            messages.error(request, "Record Failed To Update")
-            return redirect("update_skill")
+            messages.error(request, "Failed to add skill")
     else:
         form = UserSkillForm()
+
     context = {
-        'form' : form,
+        'form': form,
+        'skills': skills,
     }
     return render(request, 'edit/skill.html', context)
+
+@login_required(login_url="log-in")
+def edit_skill(request, skill_id):
+    skill = get_object_or_404(Skill, id=skill_id)
+
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        form = UserSkillForm(request.POST, instance=skill)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Skill updated successfully")
+            return redirect('update_skill')
+        else:
+            messages.error(request, "Failed to update skill")
+    else:
+        form = UserSkillForm(instance=skill)
+
+    context = {
+        'form': form,
+        'skill': skill,
+    }
+    return render(request, 'edit/edit_skill.html', context)
+
 
 
 @login_required(login_url="log-in")
 def update_language(request):
+    languages = Language.objects.all()
 
     if request.method == 'POST':
         form = UserLanguageForm(request.POST)
-
         if form.is_valid():
             form.save()
-            messages.success(request, "Record Updated Successfully")
-            return redirect("update_language")
+            messages.success(request, "Language added successfully")
+            return redirect('update_language')
         else:
-            messages.error(request, "Record Failed To Update")
-            return redirect("update_language")
+            messages.error(request, "Failed to add language")
     else:
         form = UserLanguageForm()
+
     context = {
-        'form' : form,
+        'form': form,
+        'languages': languages,
     }
     return render(request, 'edit/language.html', context)
+
+@login_required(login_url="log-in")
+def edit_language(request, language_id):
+    language = get_object_or_404(Language, id=language_id)
+
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        form = UserLanguageForm(request.POST, instance=language)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Language updated successfully")
+            return redirect('update_language')
+        else:
+            messages.error(request, "Failed to update language")
+    else:
+        form = UserLanguageForm(instance=language)
+
+    context = {
+        'form': form,
+        'language': language,
+    }
+    return render(request, 'edit/edit_language.html', context)
+
 
 
 def sample1(request):

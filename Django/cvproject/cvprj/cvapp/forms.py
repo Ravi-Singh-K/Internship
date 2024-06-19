@@ -18,7 +18,6 @@ class UserRegistrationForm(forms.ModelForm):
         ordering = ['first_name']
         # fields = "__all__"
         fields = ('first_name', 'last_name','username', 'email', 'password', 'password2')
-        # exclude = []  # exclude any non - required field
         help_texts = {
             'username': None
         }
@@ -26,7 +25,9 @@ class UserRegistrationForm(forms.ModelForm):
             'password' : forms.PasswordInput,
         }
 
-    
+    def clean(self):
+        pass
+
     def save(self, commit=True):
         user = super(UserRegistrationForm, self).save(commit=False)
         user.set_password(self.cleaned_data['password'])

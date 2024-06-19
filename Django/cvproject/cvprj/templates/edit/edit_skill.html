@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Skill</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+    <h2>Edit Skill</h2>
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    
+    <form method="post" action="{% url 'edit_skill' skill.id %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Update Skill</button>
+        <a href="{% url 'update_skill' %}" id="back">Back to Skills List</a>
+    </form>
+    
+</body>
+</html>

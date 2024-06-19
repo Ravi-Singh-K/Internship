@@ -14,8 +14,13 @@ urlpatterns = [
     path("update-links/", views.update_link, name="update_link"),
     path("update-achievement/", views.update_achievement, name="update_achievement"),
     path("update-references/", views.update_reference, name="update_reference"),
+
     path("update-skill/", views.update_skill, name="update_skill"),
+    path('skills/edit/<int:skill_id>/', views.edit_skill, name='edit_skill'),
+
     path("update-language/", views.update_language, name="update_language"),
+    path('languages/edit/<int:language_id>/', views.edit_language, name='edit_language'),
+
     path("download/", views.download, name="download"),
 
     path("sample1/", views.sample1, name="sample1"),
