@@ -39,6 +39,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 urlpatterns = format_suffix_patterns([
 
     path('', views.api_root),
+    path('api-auth/', include('rest_framework.urls')),
 
     path('movies/', views.MovieList.as_view(), name='movie-list'),
     path('movies/<int:pk>/', views.MovieDetail.as_view(), name='movie-detail'),

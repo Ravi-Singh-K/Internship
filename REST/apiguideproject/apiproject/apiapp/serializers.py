@@ -1,6 +1,9 @@
-from rest_framework import serializers
-from .models import Movie, MOVIE_GENRE, MOVIE_LANGUAGE
-from django.contrib.auth.models import User
+
+# from rest_framework import serializers
+# from .models import Movie, MOVIE_GENRE, MOVIE_LANGUAGE
+# from django.contrib.auth.models import User
+# from rest_framework.exceptions import ValidationError
+
 
 
 # class MovieSerializer(serializers.Serializer):
@@ -35,23 +38,147 @@ from django.contrib.auth.models import User
 #         instance.save()
 #         return instance
     
+
 # Using ModelSerializer
+
+# import datetime
+# class MovieDisplaySerializer(serializers.ModelSerializer):
+    
+#     class Meta:
+#         model = Movie
+#         fields = ['id', 'name', 'genre']
+
+
 # class MovieSerializer(serializers.ModelSerializer):
-    # owner = serializers.ReadOnlyField(source = 'owner.username')
+#     movie_name = serializers.SerializerMethodField()
 
 #     class Meta:
 #         model = Movie
-#         fields = ['id', 'name', 'genre', 'language', 'release_date', 'description', 'owner']
+#         fields = ['movie_name', 'genre', 'language', 'release_date', 'description']
+#         # depth = 1   # Displays all the fields of it's depended Model
+#         # extra_kwargs = {
+#         #     'release_date' : {'write_only' : True},
+#         # }
 
+#     def validate(self, data):
+#         if data.get('name').lower() == 'hello' or data.get('name').lower() == 'world' or data.get('name').lower() == 'hello world':
+#             raise serializers.ValidationError("The Given Name Is Not Allowed.")
+        
+#         # if 'release_date' in data and data['release_date'] > datetime.date.today:
+#         #     raise serializers.ValidationError({'release_date' : 'Release date cannot be in future'})
+#         return data
+    
+#     def get_movie_name(self, obj):
+#         return f'{obj.name} {obj.owner.username}'
+    
 
+#     # def to_representation(self, instance):
+#     #     representation = super().to_representation(instance)
+#     #     representation['name'] = instance.name + instance.owner.username
+#     #     return representation
 
-
-# class UserSerializer(serializers.ModelSerializer):
-#     movies = serializers.PrimaryKeyRelatedField(many = True, queryset = Movie.objects.all())
+    
+    
+# class UserDisplaySerializer(serializers.ModelSerializer):
+#     movies2 = MovieDisplaySerializer(many = True, source = 'movies')
 
 #     class Meta:
 #         model = User
-#         fields = ['id', 'username', 'movies']
+#         fields = ['id', 'username', 'movies2']
+    
+
+# class UserSerializer(serializers.ModelSerializer):
+#     movies1 = MovieSerializer(many = True, source = 'movies')
+#     action = serializers.BooleanField(source = 'is_active')
+
+#     class Meta:
+#         model = User
+#         fields = ['id', 'username','movies1', 'action']
+
+
+
+
+# Customizing Serializer Fields
+from rest_framework import serializers
+from .models import Movie, MOVIE_GENRE, MOVIE_LANGUAGE
+from django.contrib.auth.models import User
+
+
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    # movie_info = MovieSerializer(many = True, source = 'movies')
+
+    class Meta:
+        model = User
+        fields = ['id', 'username']
+
+class MovieSerializer(serializers.ModelSerializer):
+
+    # movie_name = serializers.SerializerMethodField()
+    # owner = serializers.SerializerMethodField()
+    # release_date = serializers.DateField(read_only = False)
+    # print(release_date)
+    owner = serializers.PrimaryKeyRelatedField(read_only = True)
+
+    class Meta:
+        model = Movie
+        fields = ['name', 'genre', 'language', 'description', 'release_date', 'owner']
+
+    def validate_name(self, value):
+        if value.lower() == 'hello':
+            raise serializers.ValidationError({'name' : 'The given name is not allowed. Please provide genuine movie name.'})
+        if Movie.objects.filter(name = value).exists():
+            raise serializers.ValidationError({'name' : 'The given movie name already exists.'})
+        return value
+
+    # def to_representation(self, value):
+    #     representation = super().to_representation(value)
+    #     representation['owner'] = value.owner.username
+    #     return representation
+
+    def get_fields(self):
+        fields = super().get_fields()
+        print(fields)
+        # request = self.context.get('request')
+        # if request and request.method == 'GET':
+        #     fields['release_date'] = MovieSerializer()
+        
+        return fields
+    
+
+    # def get_owner(self, obj):        # if request and request.method == 'GET':
+        #     fields['release_date'] = MovieSerializer()
+    #     return obj.owner.username
+
+    # def get_movie_name(self, obj):
+    #     return f'{obj.name} {obj.owner.username}'
+    
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     request = self.context.get('request')
+        
+    #     if request:
+    #         if request.method == 'GET':
+    #             self.fields.pop('description', None)
+    #             self.fields.pop('highlighted', None)
+    #             self.fields.pop('language', None)
+    #         elif request.method == 'POST':
+    #             self.fields.pop('id', None)
+    #             self.fields.pop('genre', None)
+    #             self.fields.pop('language', None)
+    #             self.fields.pop('highlighted', None)
+
+
+        
+
+
+    
+
+
+    
+
 
 
 
@@ -64,16 +191,21 @@ from django.contrib.auth.models import User
 
 # Using HyperLinkedModelSerializer
 
-class MovieSerializer(serializers.HyperlinkedModelSerializer):
-    owner = serializers.ReadOnlyField(source = 'owner.username')
+# class MovieSerializer(serializers.HyperlinkedModelSerializer):
+#     owner = serializers.ReadOnlyField(source = 'owner.username')
     
-    class Meta:
-        model = Movie
-        fields = ['url', 'id', 'owner', 'name', 'genre', 'language', 'release_date', 'description']
+#     class Meta:
+#         model = Movie
+#         fields = ['url', 'id', 'owner', 'name', 'genre', 'language', 'release_date', 'description']
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-    movies = serializers.HyperlinkedIdentityField(many = True, view_name="movie-detail", read_only = True)
+#         def validate_name(self, validated_data):
+#             if validated_data["name"] == 'Hello':
+#                 raise serializers.ValidationError("Movie name not allowed")
 
-    class Meta:
-        model = User
-        fields = ['url', 'id', 'username', 'movies']
+# class UserSerializer(serializers.HyperlinkedModelSerializer):
+#     movies = serializers.HyperlinkedIdentityField(many = True, view_name="movie-detail", read_only = True)
+#     user_movies = MovieSerializer(many = True, source = 'movies')
+
+#     class Meta:
+#         model = User
+#         fields = ['url', 'id', 'username', 'movies' 'user_movies']
