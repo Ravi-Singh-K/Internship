@@ -19,7 +19,7 @@
     
 #     elif request.method == 'POST':
 #         serializer = MovieSerializer(data = request.data)
-#         if serializer.is_valid():
+#         if serializer.is_valid():self
 #             serializer.save()
 #             return Response(serializer.data, status = status.HTTP_201_CREATED)
 #         return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
@@ -178,55 +178,122 @@ from apiapp.permissions import IsOwnerOrReadOnly
 #         return self.retrieve(request, *args, **kwargs)
 
 
-class MovieList(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
+from rest_framework.decorators import action
+from rest_framework import viewsets
+from rest_framework import status
+
+class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
-    serializer_class = MovieSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    
+
+    def get_queryset(self):
+        user_pk = self.kwargs['user_pk']
+        return self.queryset.filter(owner_id=user_pk)
+
+    def get_serializer_class(self):
+        return MovieSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update(
+            {'user_id': self.request.user.id}
+        )
+        return context
 
     def perform_create(self, serializer):
-        serializer.save(owner = self.request.user)
+        serializer.save(owner=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='xyz')
+    def xyz(self, request, user_pk=None, pk=None):
+        movie = self.get_object()
+        serializer = self.get_serializer(movie)
+        return Response(serializer.data)
+
+# class MovieList(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
+#     queryset = Movie.objects.all()
+#     serializer_class = MovieSerializer
+#     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+#     def get_queryset(self):
+#         queryset = self.queryset.filter(owner__id = self.request.user.id)
+#         return queryset
     
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+#     def get_serializer_context(self):
+#         context = super().get_serializer_context()
+#         context.update(
+#             {'user_id' : self.request.user.id}
+#             )
+#         return context
 
 
-
-class MovieDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.GenericAPIView):
-    queryset = Movie.objects.all()
-    serializer_class = MovieSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
-
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
+#     def perform_create(self, serializer):
+#         serializer.save(owner = self.request.user)
     
-    def patch(self, request, *args, **kwargs):
-        return self.partial_update(request, *args, **kwargs)
+#     def get(self, request, *args, **kwargs):
+#         return self.list(request, *args, **kwargs)
+    
+#     def post(self, request, *args, **kwargs):
+#         return self.create(request, *args, **kwargs)
+
+
+
+# class MovieDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.GenericAPIView):
+#     queryset = Movie.objects.all()
+#     serializer_class = MovieSerializer
+#     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+#     def get(self, request, *args, **kwargs):
+#         return self.retrieve(request, *args, **kwargs)
+    
+#     def patch(self, request, *args, **kwargs):
+#         return self.partial_update(request, *args, **kwargs)
         
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
+#     def delete(self, request, *args, **kwargs):
+#         return self.destroy(request, *args, **kwargs)
 
 
-class UserList(mixins.ListModelMixin, generics.GenericAPIView):
+
+
+class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    lookup_field = 'pk'
 
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+    @action(methods=['get'], detail=True, url_path='detail_movie', url_name='detail-movie')
+    def movie(self, request, pk = None):
+        """
+            Returns the list of movies related with user
+        """
+        user = self.get_object()
+        if user:
+            movies = user.movies.all()
+            movies_serializer = MovieSerializer(movies, many = True)
+            return Response(movies_serializer.data)
+        else:
+            return Response({'user' : 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+# class UserList(mixins.ListModelMixin, generics.GenericAPIView):
+#     queryset = User.objects.all()
+#     serializer_class = UserSerializer
+#     lookup_field = 'pk'
+
+#     def get(self, request, *args, **kwargs):
+#         return self.list(request, *args, **kwargs)
+    
+#     @action(methods=['retrieve'], detail=True, url_path='detail')
+#     def movie(self, request, pk = None):
+#         """
+#             Returns the list of movies related with user
+#         """
+#         user = self.get_object()
+#         movies = user.movies.all()
+#         return Response([movie for movie in movies])
 
 
-class UserDetail(mixins.RetrieveModelMixin, generics.GenericAPIView):
+class UserDetail(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-
-
-
+    
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response

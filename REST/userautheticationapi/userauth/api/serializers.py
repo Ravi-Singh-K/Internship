@@ -1,9 +1,40 @@
 import string
-from .models import Book, GENRE_CHOICE
-from django.contrib.auth.models import User
+from typing import Dict
+
+from rest_framework_simplejwt.tokens import Token
+from .models import Book, GENRE_CHOICE, CustomUser
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .tokens import CustomRefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        refresh = RefreshToken.for_user(self.user)
+        refresh['id'] = self.user.id
+
+        data['refresh'] = str(refresh)
+        data['access'] = str(refresh.access_token)
+        data['id'] = self.user.id
+
+        return data
+    
+# class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+#     def validate(self, attrs):
+#         data =  super().validate(attrs)
+        
+#         refresh = CustomRefreshToken.for_user(self.user)
+
+#         data['refresh'] = str(refresh)
+#         data['access'] = str(refresh.access_token)
+
+#         return data
+
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -16,7 +47,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
     
     class Meta:
-        model = User
+        model = CustomUser
         fields = ('id', 'first_name', 'last_name', 'username', 'email', 'password', 're_password')
         extra_kwargs = {
             'username' : {
@@ -32,7 +63,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('re_password')
         validated_data['password'] = make_password(validated_data['password'])
-        user = User.objects.create(**validated_data)
+        user = CustomUser.objects.create(**validated_data)
         return user
     
     def validate(self, data):
@@ -45,7 +76,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'Password' : 'Password is entirely numeric.'})
         
 
-        if User.objects.filter(username = data['username']).exists():
+        if CustomUser.objects.filter(username = data['username']).exists():
             raise serializers.ValidationError({'Username' : 'Username already exist.'})
         
         return data
@@ -67,18 +98,18 @@ class BookSerializer(serializers.ModelSerializer):
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    booke = BookSerializer(many = True)
+    books = BookSerializer(many = True)
 
     class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'id', 'booke']   
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'id', 'books']   
     
 
 
 class UserLoginSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = User
+        model = CustomUser
         fields = ('username', 'password')
         extra_kwargs = {
             'password' : {
@@ -103,3 +134,20 @@ class UserLoginSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Both Username and Password are required")
         data['user'] = user
         return data
+    
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        token['username'] = user.username
+
+        return token
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

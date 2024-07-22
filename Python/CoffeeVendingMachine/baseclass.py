@@ -1,7 +1,7 @@
 import json
 from operationclass import *
 
-with open("./CoffeeVendingMachine/materials.json", "r") as outfile:
+with open("./materials.json", "r") as outfile:
         data = json.load(outfile)
 
 

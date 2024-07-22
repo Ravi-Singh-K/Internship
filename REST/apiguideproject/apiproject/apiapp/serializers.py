@@ -104,8 +104,6 @@ from .models import Movie, MOVIE_GENRE, MOVIE_LANGUAGE
 from django.contrib.auth.models import User
 
 
-
-
 class UserSerializer(serializers.ModelSerializer):
 
     # movie_info = MovieSerializer(many = True, source = 'movies')
@@ -113,30 +111,34 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username']
+    
 
 class MovieSerializer(serializers.ModelSerializer):
-
-    # movie_name = serializers.SerializerMethodField()
-    # owner = serializers.SerializerMethodField()
-    # release_date = serializers.DateField(read_only = False)
-    # print(release_date)
-    owner = serializers.PrimaryKeyRelatedField(read_only = True)
+    owner = serializers.PrimaryKeyRelatedField(read_only=True)
+    new_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Movie
-        fields = ['name', 'genre', 'language', 'description', 'release_date', 'owner']
+        fields = ['id', 'name', 'genre', 'language', 'description', 'release_date', 'new_name', 'owner']
 
-    def validate_name(self, value):
-        if value.lower() == 'hello':
-            raise serializers.ValidationError({'name' : 'The given name is not allowed. Please provide genuine movie name.'})
-        if Movie.objects.filter(name = value).exists():
-            raise serializers.ValidationError({'name' : 'The given movie name already exists.'})
-        return value
+    def get_new_name(self, obj):
+        return f"{obj.owner} {obj.name}"
 
-    # def to_representation(self, value):
-    #     representation = super().to_representation(value)
-    #     representation['owner'] = value.owner.username
-    #     return representation
+    def to_representation(self, value):
+        representation = super().to_representation(value)
+        representation['owner'] = f'{value.owner.username} {value.owner.id}'
+        representation['owner_id'] = self.context.get('user_id')
+        return representation
+
+    def get_new_name(self, obj):
+        return f"{obj.name}"
+
+    def validate(self, data):
+        if data.get('name') == 'ravi':
+            raise serializers.ValidationError({
+                'name': 'The given name is not allowed. Please provide a genuine movie name.'
+            })
+        return data
 
     def get_fields(self):
         fields = super().get_fields()

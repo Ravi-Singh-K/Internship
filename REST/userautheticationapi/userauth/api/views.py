@@ -1,9 +1,8 @@
 from django.shortcuts import render
-from django.contrib.auth.models import User
 from rest_framework.viewsets import ModelViewSet
 from .serializers import UserRegistrationSerializer, UserLoginSerializer, BookSerializer, UserDetailSerializer
 from .models import *
-from rest_framework import permissions, filters
+from rest_framework import permissions, filters, status
 from .permissions import *
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -15,7 +14,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 class RegistrationViewSet(ModelViewSet):
 
     def get_queryset(self):
-        queryset = User.objects.all()
+        queryset = CustomUser.objects.all()
         return queryset
     
     def get_serializer_class(self):
@@ -23,19 +22,41 @@ class RegistrationViewSet(ModelViewSet):
     
 
 
-class LoginViewSet(ModelViewSet):
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import CustomTokenObtainPairSerializer
 
-    def get_queryset(self):
-        queryset = User.objects.all()
-        return queryset
-    
-    def get_serializer_class(self):
-        serializer_class = UserLoginSerializer
-        return serializer_class
+class LoginViewSet(viewsets.ViewSet):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = CustomTokenObtainPairSerializer
+
+    def create(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            user = CustomUser.objects.get(username=request.data['username'])
+            refresh = RefreshToken.for_user(user)
+            refresh['id'] = user.id
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# class LoginViewSet(generics.GenericAPIView):
+#     permission_classes = (permissions.AllowAny)
+#     serializer_class = CustomTokenObtainPairSerializer
+
+#     def post(self, request, *args, **kwargs):
+#         serializer = self.serializer_class(data = request.data)
+#         serializer.is_valid(raise_exception = True)
+#         return Response(serializer.validated_data)
+
 
 
 class UserDetailViewSet(ModelViewSet):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserDetailSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     # filterset_fields = ['first_name']
