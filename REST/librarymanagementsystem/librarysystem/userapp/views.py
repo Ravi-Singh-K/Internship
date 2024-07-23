@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
-from filter_map.backends import FilterMapBackend
+from rest_framework.decorators import action
 
 
 
@@ -117,7 +117,6 @@ class JWTLoginView(APIView):
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
-
 class BookAssignmentViewSet(ModelViewSet):
     queryset = BookAssignment.objects.all()
     serializer_class = BookAssignmentSerializer
@@ -127,3 +126,33 @@ class BookAssignmentViewSet(ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+    @action(detail=True, methods=['get', 'put', 'patch'], serializer_class=BookAssignmentSerializer)
+    def set_status(self, request, pk=None):
+        book_assignment = self.get_object()
+
+        if request.method == 'GET':
+            # Return the current data of the book assignment
+            serializer = self.get_serializer(book_assignment)
+            return Response(serializer.data)
+        serializer = self.get_serializer(book_assignment, data = request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'])
+    def returned_status(self, request):
+        returned_books = self.queryset.filter(status='Returned')
+        serializer = self.get_serializer(returned_books, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'])
+    def pending_status(self, request):
+        assigned_books = self.queryset.filter(status='Pending')
+        serializer = self.get_serializer(assigned_books, many=True)
+        return Response(serializer.data)
+
+    def get_serializer(self, *args, **kwargs):
+        if self.action in ['set_status', 'returned_status', 'pending_status']:
+            kwargs['context'] = {'request': self.request, 'is_action': True}
+        return super().get_serializer(*args, **kwargs)

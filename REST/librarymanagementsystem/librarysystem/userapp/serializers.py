@@ -1,11 +1,12 @@
 from userapp.models import *
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth import (authenticate, get_user_model)
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import Permission
 from django.db.models import F
 import string
-from datetime import datetime, timedelta, date
+from datetime import timedelta
+from .choices import *
 
 
 class FacultyCreationSerializer(serializers.ModelSerializer):
@@ -163,59 +164,16 @@ class BookDisplaySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'status', 'book_count', 'faculty']
 
 
-class AssignmentDisplaySerializer(serializers.ModelSerializer):
-    must_return_within = serializers.SerializerMethodField(read_only = True)
-    
-    class Meta:
-        model = BookAssignment
-        fields = "__all__"
-        extra_kwargs = {
-            'overdue_charge' : {
-                'read_only' : True
-            },
-        }
-
-    def get_must_return_within(self, obj):
-        return obj.assigned_at + timedelta(days=30)
-    
-    def get_fields(self):
-        fields = super().get_fields()
-        request = self.context['request']
-        if request and request.method == 'GET':
-
-            # Remove 'users' fields from Nested Serializer
-            fields['faculty'] = FacultyDisplaySerializer()
-            if 'users' in fields['faculty'].fields:
-                fields['faculty'].fields.pop('users')
-
-            # Nested Serializer
-            fields['users'] = UserDisplaySerializer()
-
-            # Remove fields from UserDisplaySerializer
-            if 'primary_group' or 'faculty' in fields['users'].fields:
-                fields['users'].fields.pop('primary_group')
-                fields['users'].fields.pop('faculty')
-
-            # Remove 'status', 'book_count', 'faculty' from nested seializer
-            fields['book'] = BookDisplaySerializer()
-            if 'status' or 'book_count' or 'faculty' in fields['book'].fields:
-                fields['book'].fields.pop('status')
-                # fields['book'].fields.pop('book_count')
-                fields['book'].fields.pop('faculty')
-        
-        return fields
-
-
 class BookAssignmentSerializer(serializers.ModelSerializer):
-
-    must_return_within = serializers.SerializerMethodField(read_only = True)
+    must_return_within = serializers.SerializerMethodField(read_only=True)
+    returned_at = serializers.DateField(required=False)
 
     class Meta:
         model = BookAssignment
         fields = ['id', 'faculty', 'users', 'book', 'assigned_at', 'must_return_within', 'returned_at', 'status', 'overdue_charge']
         extra_kwargs = {
-            'overdue_charge' : {
-                'read_only' : True
+            'overdue_charge': {
+                'read_only': True
             },
         }
 
@@ -223,9 +181,8 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
         return obj.assigned_at + timedelta(days=30)
 
     def create(self, validated_data):
-
         book = validated_data['book']
-        
+
         # Use F expression to handle concurrent updates safely
         book.book_count = F('book_count') - 1
         book.save()
@@ -236,13 +193,16 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
             book.save()
         
         return BookAssignment.objects.create(**validated_data)
-    
+
     def update(self, instance, validated_data):
-        
         # Retrieve new status and book from the validated data
         status = validated_data.get('status', instance.status)
         book = validated_data.get('book', instance.book)
+        returned_at = validated_data.get('returned_at', instance.returned_at)
+        overdue_charge = validated_data.get('overdue_charge', instance.overdue_charge)
+        assigned_at = validated_data.get('assigned_at', instance.assigned_at)
 
+        must_return_within = assigned_at + timedelta(days=30)
 
         # If the status is 'Returned', increment the book count
         if status == RETURNED_STATUS_CHOICES[0][0]:
@@ -250,13 +210,34 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
             book.save()
             book.refresh_from_db()
         
-        # If the book count is greater than 0, update the book's status to 'Available'
-        if book.book_count > 0:
-            book.status = BOOK_CHOICES[0][0]
-            book.save()
+        if status == 'Pending':
+            returned_at = None
+        
+        if returned_at == None:
+            status = 'Pending'
+
+            # If the book count is greater than 0, update the book's status to 'Available'
+            if book.book_count > 0:
+                book.status = BOOK_CHOICES[0][0]  # 'Available' is at index 0
+                book.save()
+
+        if returned_at and status == 'Returned':
+            if returned_at > must_return_within:
+                late_days = (returned_at - must_return_within).days
+                overdue_charge = late_days * 100
+                instance.overdue_charge = overdue_charge
+            else:
+                overdue_charge = 0
+                instance.overdue_charge = overdue_charge
+
+        else:
+            overdue_charge = 0
+            instance.overdue_charge = overdue_charge
+
 
         # Update the instance with the new data
         instance.status = status
+        instance.returned_at = returned_at
         instance.book = book
         instance.save()
 
@@ -265,8 +246,12 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         request = self.context['request']
-        if request and request.method == 'GET':
 
+        if request and request.method == 'POST' and not self.context.get('is_action', False):
+            fields.pop('status', None)
+            fields.pop('returned_at', None)
+        
+        if request and request.method == 'GET':
             # Remove 'users' fields from Nested Serializer
             fields['faculty'] = FacultyDisplaySerializer()
             if 'users' in fields['faculty'].fields:
@@ -276,43 +261,49 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
             fields['users'] = UserDisplaySerializer()
 
             # Remove fields from UserDisplaySerializer
-            if 'primary_group' or 'faculty' in fields['users'].fields:
+            if 'primary_group' in fields['users'].fields:
                 fields['users'].fields.pop('primary_group')
+            if 'faculty' in fields['users'].fields:
                 fields['users'].fields.pop('faculty')
 
-            # Remove 'status', 'book_count', 'faculty' from nested seializer
+            # Remove 'status', 'book_count', 'faculty' from nested serializer
             fields['book'] = BookDisplaySerializer()
-            if 'status' or 'book_count' or 'faculty' in fields['book'].fields:
+            if 'status' in fields['book'].fields:
                 fields['book'].fields.pop('status')
-                # fields['book'].fields.pop('book_count')
+            if 'book_count' in fields['book'].fields:
+                fields['book'].fields.pop('book_count')
+            if 'faculty' in fields['book'].fields:
                 fields['book'].fields.pop('faculty')
-        
+
         return fields
 
     def validate(self, data):
-        """ 
-            Convert single instance to a list for iteration otherwise it will throw CustomUser is not iterable 
-        """
         faculty = data.get('faculty')
         users = data.get('users')
         book = data.get('book')
 
-        # Ensure users are iterable (e.g., list, queryset)
-        # if isinstance(users, CustomUser):
-        #     users = [users]  
-        
-        # Validate each user belongs to the specified faculty
-        # for user in users:
+        if users is None:
+            raise serializers.ValidationError({"users": "User information is missing."})
+        if faculty is None:
+            raise serializers.ValidationError({"faculty": "Faculty information is missing."})
+    
+        # Validate that the user belongs to the specified faculty
         if users.faculty != faculty:
-            raise serializers.ValidationError({" Users " : " User '{}' does not belong to the faculty '{}' ".format(users.username, faculty.name)})
+            raise serializers.ValidationError({
+                "users": "User '{}' does not belong to the faculty '{}'".format(users.username, faculty.name)
+            })
 
-        # Validate given faculty belongs to many assigned faculties of book instance
+        # Validate the given faculty belongs to the assigned faculties of the book instance
         if faculty not in book.faculty.all():
-            raise serializers.ValidationError(f"Book '{book.name}' does not belong to the faculty '{faculty.name}'.")
-        
+            raise serializers.ValidationError({
+                "faculty": "Book '{}' does not belong to the faculty '{}'".format(book.name, faculty.name)
+            })
+
         request = self.context.get('request')
         if request.method == 'POST':
             if book.status == 'Not Available' or book.book_count == 0:
-                raise serializers.ValidationError({"book" : "The book '{}' is not available to assign.".format(book.name)})
-        
+                raise serializers.ValidationError({
+                    "book": "The book '{}' is not available to assign.".format(book.name)
+                })
+
         return data

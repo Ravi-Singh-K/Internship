@@ -12,6 +12,7 @@ class Faculty(models.Model):
     def __str__(self):
         return self.name
 
+
 class Book(models.Model):
     faculty = models.ManyToManyField(Faculty, related_name="books")
     name = models.CharField(max_length=100)

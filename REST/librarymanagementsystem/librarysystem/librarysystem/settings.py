@@ -48,6 +48,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+DATE_FORMAT = "%Y-%m-%d"
+DATE_INPUT_FORMATS = ['%Y-%m-%d']
+
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -55,7 +59,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 5
+    'PAGE_SIZE': 5,
 }
 
 CRONJOBS = [
