@@ -144,6 +144,7 @@ router.register(r'faculties', FacultyViewSet, basename='faculty')
 router.register(r'groups', GroupViewSet, basename='group')
 router.register(r'books', AllBookViewSet, basename='book')
 router.register(r'assignbooks', BookAssignmentViewSet, basename='assignbook')
+router.register(r'requestbooks', RequestBookViewSet, basename='requestbook')
 
 urlpatterns = router.urls + [
     path('api-auth/', include('rest_framework.urls')),

@@ -3,7 +3,6 @@ from django.contrib.auth.models import AbstractUser, Group
 from .validators import passwordvalidator, contactvalidator
 from .choices import BOOK_CHOICES, RETURNED_STATUS_CHOICES
 from django.core.validators import RegexValidator
-from datetime import datetime,  timedelta
 
 
 class Faculty(models.Model):
@@ -56,3 +55,13 @@ class BookAssignment(models.Model):
 
     def __str__(self):
         return f"{self.users} --> {self.book} --> {self.assigned_at}"
+
+
+class RequestBook(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="requestbooks")
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="requestbooks")
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name="requestbooks")
+    requested_at = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} --> {self.book} --> {self.requested_at}"

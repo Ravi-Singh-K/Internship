@@ -159,6 +159,7 @@ class BookCreationSerializer(serializers.ModelSerializer):
 
 class BookDisplaySerializer(serializers.ModelSerializer):
     faculty = serializers.SlugRelatedField(many = True, slug_field='name', queryset = Faculty.objects.all())
+
     class Meta:
         model = Book
         fields = ['id', 'name', 'status', 'book_count', 'faculty']
@@ -189,7 +190,7 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
         book.refresh_from_db()  # Refresh the book object to get the updated book_count value
 
         if book.book_count == 0:
-            book.status = BOOK_CHOICES[1][0]  # 'Not Available' is at index 1
+            book.status = NOT_AVAILABLE  # 'Not Available' is at index 1
             book.save()
         
         return BookAssignment.objects.create(**validated_data)
@@ -203,25 +204,22 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
         assigned_at = validated_data.get('assigned_at', instance.assigned_at)
 
         must_return_within = assigned_at + timedelta(days=30)
+        # breakpoint()
 
         # If the status is 'Returned', increment the book count
-        if status == RETURNED_STATUS_CHOICES[0][0]:
+        if status == RETURNED:
             book.book_count = F('book_count') + 1
+            book.status = AVAILABLE
             book.save()
             book.refresh_from_db()
         
-        if status == 'Pending':
+        if status == PENDING:
             returned_at = None
         
         if returned_at == None:
-            status = 'Pending'
+            status = PENDING
 
-            # If the book count is greater than 0, update the book's status to 'Available'
-            if book.book_count > 0:
-                book.status = BOOK_CHOICES[0][0]  # 'Available' is at index 0
-                book.save()
-
-        if returned_at and status == 'Returned':
+        if returned_at and status == RETURNED:
             if returned_at > must_return_within:
                 late_days = (returned_at - must_return_within).days
                 overdue_charge = late_days * 100
@@ -247,7 +245,7 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
         fields = super().get_fields()
         request = self.context['request']
 
-        if request and request.method == 'POST' and not self.context.get('is_action', False):
+        if request and request.method in ['POST', 'PUT', 'PATCH'] and not self.context.get('is_action', False):
             fields.pop('status', None)
             fields.pop('returned_at', None)
         
@@ -278,9 +276,24 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
         return fields
 
     def validate(self, data):
+        # breakpoint()
         faculty = data.get('faculty')
         users = data.get('users')
         book = data.get('book')
+        returned_at = data.get('returned_at')
+        status = data.get('status')
+
+        if status == RETURNED and returned_at == None:
+            raise serializers.ValidationError({"Returned_at" : "You must specify returned_at if status is 'returned'."})
+        elif status == PENDING and returned_at != None:
+            raise serializers.ValidationError({"status" : "Status cannot be 'pending' if returned_at is given."})
+
+        if self.instance:
+            assigned_at = self.instance.assigned_at
+
+        if returned_at:
+            if returned_at < assigned_at:
+                raise serializers.ValidationError({"returned_at" : "The return date cannot be before assigned date."})
 
         if users is None:
             raise serializers.ValidationError({"users": "User information is missing."})
@@ -307,3 +320,58 @@ class BookAssignmentSerializer(serializers.ModelSerializer):
                 })
 
         return data
+    
+
+class RequestBookSerializer(serializers.ModelSerializer):
+
+    # user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+    # faculty = serializers.PrimaryKeyRelatedField(queryset = Faculty.objects.all())
+    book = serializers.PrimaryKeyRelatedField(queryset = Faculty.objects.all())
+
+    class Meta:
+        model = RequestBook
+        fields = ('id', 'book', 'requested_at')
+        extra_kwargs = {
+            'requested_at': {'read_only': True},
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            # self.fields['user'].queryset = CustomUser.objects.filter(id=request.user.id)
+            # self.fields['faculty'].queryset = Faculty.objects.filter(name = request.user.faculty)
+            self.fields['book'].queryset = Book.objects.filter(faculty = request.user.faculty)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context['request']
+        if request and request.method == 'GET':
+
+            # user_serializer = UserDisplaySerializer()
+            # user_serializer.fields = {"first_name": user_serializer.fields['first_name']}
+            # fields['user'] = user_serializer
+
+            # faculty_serializer = FacultyDisplaySerializer()
+            # faculty_serializer.fields = {"name": faculty_serializer.fields['name']}
+            # fields['faculty'] = faculty_serializer
+
+            book_serializer = BookDisplaySerializer()
+            for field in ['id', 'status', 'book_count', 'faculty']:
+                book_serializer.fields.pop(field, None)
+            fields['book'] = book_serializer
+
+            fields['user'] = UserDisplaySerializer()
+            for field in ['id', 'faculty', 'address']:
+                fields['user'].fields.pop(field, None)
+
+            fields['faculty'] = FacultyDisplaySerializer()
+            for field in ['id', 'users']:
+                fields['faculty'].fields.pop(field, None)
+
+        return fields
+    
+    def create(self, validated_data):
+        validated_data['user'] = self.context.get('request').user
+        validated_data['faculty'] = self.context.get('request').user.faculty
+        return RequestBook.objects.create(**validated_data)

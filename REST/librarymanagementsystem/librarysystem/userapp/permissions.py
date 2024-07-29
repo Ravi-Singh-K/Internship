@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from rest_framework.permissions import IsAdminUser
+from userapp.models import *
 
 class NotAuthenticated(BasePermission):
     """
